@@ -1,5 +1,5 @@
 # -------------------------------------------------
-# app.py – geotech.ai (ÇALIŞIR! EK-12 RAPOR + AI + HATA YOK!)
+# app.py – geotech.ai (ÇALIŞIR! SORULARA CEVAP + EK-12 RAPOR)
 # -------------------------------------------------
 import streamlit as st
 import pandas as pd
@@ -8,20 +8,17 @@ import re
 import matplotlib.pyplot as plt
 import os
 import io
-import plotly.graph_objects as go
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.styles import getSampleStyleSheet
 
 # LangChain (HUGGINGFACE ENDPOINT)
 from langchain_huggingface import HuggingFaceEndpoint
-from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
 
 # Token
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
 
-# AI Model (DÜZELTİLDİ!)
+# AI Model
 @st.cache_resource
 def get_llm():
     return HuggingFaceEndpoint(
@@ -86,7 +83,10 @@ with st.sidebar:
             # AI ile risk analizi (DÜZELTİLDİ!)
             context = df.to_string()
             prompt = f"Verilere göre likefaksiyon riski nedir? {context}\nCevap:"
-            answer = llm.invoke(prompt)
+            try:
+                answer = llm.invoke(prompt)
+            except Exception as e:
+                answer = "AI hatası: " + str(e)
             st.write("AI Risk Tahmini:", answer)
             
             # Ek-12 Rapor PDF
@@ -132,9 +132,12 @@ with st.container():
                 if "selam" in prompt.lower():
                     answer = "Selam! geotech.ai burada. PDF yükle, rapor oluştur, risk analizi yap! 🚀"
                 else:
-                    # AI CEVAP
+                    # AI CEVAP (DÜZELTİLDİ!)
                     full_prompt = f"Geoteknik sorusu: {prompt}\nCevap:"
-                    answer = llm.invoke(full_prompt)
+                    try:
+                        answer = llm.invoke(full_prompt)
+                    except Exception as e:
+                        answer = "AI hatası: " + str(e)
                 
                 st.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
