@@ -4,11 +4,4 @@ PyPDF2
 matplotlib
 plotly
 reportlab
-langchain
-langchain-community
-langchain-core
-langchain-text-splitters
-faiss-cpu
-sentence-transformers
 langchain-huggingface
-huggingface-hub
