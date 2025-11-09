@@ -1,5 +1,5 @@
 # -------------------------------------------------
-# app.py – geotech.ai (ÇALIŞIR! EK-12 RAPOR + AI)
+# app.py – geotech.ai (ÇALIŞIR! "SELAM" + EK-12 RAPOR)
 # -------------------------------------------------
 import streamlit as st
 import pandas as pd
@@ -42,7 +42,7 @@ embeddings = get_embeddings()
 splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
 
 # Streamlit
-st.set_page_config(page_title="getech.ai", page_icon="globe", layout="wide")
+st.set_page_config(page_title="geotech.ai", page_icon="globe", layout="wide")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -155,5 +155,10 @@ with st.container():
                     | StrOutputParser()
                 )
                 answer = rag_chain.invoke(prompt)
+                
+                # "SELAM" ÖZEL CEVAP
+                if "selam" in prompt.lower():
+                    answer = "Selam! geotech.ai burada. PDF yükle, rapor oluştur, risk analizi yap! 🚀"
+                
                 st.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
