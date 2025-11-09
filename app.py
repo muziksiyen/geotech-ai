@@ -1,5 +1,5 @@
 # -------------------------------------------------
-# app.py – geotech.ai (OTOMATİK RİSK ANALİZİ + EK-12 RAPOR)
+# app.py – geotech.ai (ÇALIŞIR! OTOMATİK RİSK + HATA YOK!)
 # -------------------------------------------------
 import streamlit as st
 import pandas as pd
@@ -11,18 +11,18 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.styles import getSampleStyleSheet
 
-# LangChain
+# LangChain (HUGGINGFACE ENDPOINT – CONVERSATIONAL!)
 from langchain_huggingface import HuggingFaceEndpoint
 
 # Token
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
 
-# AI Model
+# AI Model (DOĞRU!)
 @st.cache_resource
 def get_llm():
     return HuggingFaceEndpoint(
         repo_id="mistralai/Mistral-7B-Instruct-v0.2",
-        task="conversational",
+        task="conversational",  # ZORUNLU!
         temperature=0.3,
         max_new_tokens=500
     )
@@ -49,7 +49,9 @@ with st.sidebar:
         with st.spinner("Rapor işleniyor..."):
             # PDF'den metin çıkar
             reader = PyPDF2.PdfReader(pdf_file)
-            text = "".join([p.extract_text() or "" for p in reader.pages])
+            text = ""
+            for page in reader.pages:
+                text += page.extract_text() or ""
             
             # Veri çıkar
             depths = re.findall(r'Derinlik\D*(\d+\.?\d*)', text, re.I)
@@ -80,10 +82,9 @@ with st.sidebar:
             st.subheader("Çıkarılan Veri")
             st.dataframe(df)
             
-            # OTOMATİK RİSK ANALİZİ
-            context = df.to_string()
+            # OTOMATİK RİSK ANALİZİ (CHAT FORMATI!)
             messages = [
-                {"role": "user", "content": f"Verilere göre likefaksiyon riski, oturma, taşıma kapasitesi ve temel önerisi nedir?\n{context}"}
+                {"role": "user", "content": f"Verilere göre likefaksiyon riski, oturma, taşıma kapasitesi ve temel önerisi nedir?\n{df.to_string()}"}
             ]
             try:
                 risk_answer = llm.invoke(messages)
@@ -119,7 +120,7 @@ with st.sidebar:
             pdf_bytes = create_pdf()
             st.download_button("Ek-12 Rapor PDF İndir", pdf_bytes, "ek12_rapor.pdf", "application/pdf")
             
-            # Son raporu sakla (sohbet için)
+            # Son raporu sakla
             st.session_state.last_report = {
                 "df": df,
                 "risk": risk_answer
@@ -142,7 +143,7 @@ with st.container():
                 if "selam" in prompt.lower():
                     answer = "Selam! geotech.ai burada. PDF yükle, otomatik rapor al! 🚀"
                 else:
-                    # Son rapor varsa, bağlam ekle
+                    # Son rapor varsa bağlam ekle
                     context = ""
                     if st.session_state.last_report:
                         context = f"Son rapor verileri:\n{st.session_state.last_report['df'].to_string()}\nRisk: {st.session_state.last_report['risk']}\n"
