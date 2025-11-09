@@ -1,5 +1,5 @@
 # -------------------------------------------------
-# app.py – geotech.ai (TAM PROJE! OTOMATİK RİSK + EK-12 + SOHBET)
+# app.py – geotech.ai (ÇALIŞIR! TÜM SORULARA CEVAP + RİSK + RAPOR)
 # -------------------------------------------------
 import streamlit as st
 import pandas as pd
@@ -17,12 +17,12 @@ from langchain_huggingface import HuggingFaceEndpoint
 # Token
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
 
-# AI Model (CONVERSATIONAL – HATA YOK!)
+# AI Model
 @st.cache_resource
 def get_llm():
     return HuggingFaceEndpoint(
         repo_id="mistralai/Mistral-7B-Instruct-v0.2",
-        task="conversational",  # DOĞRU TASK!
+        task="conversational",
         temperature=0.3,
         max_new_tokens=500
     )
@@ -38,7 +38,7 @@ if "last_report" not in st.session_state:
     st.session_state.last_report = None
 
 st.title("geotech.ai")
-st.caption("Veri raporu eklendiğinde OTOMATİK risk analizi + Ek-12 rapor!")
+st.caption("Veri raporu eklendiğinde OTOMATİK risk analizi + Ek-12 rapor! (Tüm sorulara cevap)")
 
 # Sidebar
 with st.sidebar:
@@ -84,7 +84,7 @@ with st.sidebar:
             
             # OTOMATİK RİSK ANALİZİ (CHAT FORMATI!)
             messages = [
-                {"role": "user", "content": f"Verilere göre likefaksiyon riski, oturma, taşıma kapasitesi ve temel önerisi nedir?\n{df.to_string()}"}
+                {"role": "user", "content": f"Bu geoteknik veriler için likefaksiyon riski, oturma tahmini, taşıma kapasitesi ve temel önerisi nedir?\n{df.to_string()}"}
             ]
             try:
                 risk_answer = llm.invoke(messages)
@@ -103,7 +103,7 @@ with st.sidebar:
                 
                 story.append(Paragraph("ZEMİN VE TEMEL ETÜDÜ RAPORU (EK-12)", styles['Title']))
                 story.append(Spacer(1, 12))
-                story.append(Paragraph("1. GİRİŞ<br/>Proje: Örnek Proje<br/>Amaç: Temel tasarımı", styles['Normal']))
+                story.append(Paragraph("1. GİRİŞ\nProje: Örnek Proje\nAmaç: Temel tasarımı", styles['Normal']))
                 story.append(Spacer(1, 12))
                 
                 data = [['Derinlik', 'SPT', 'Zemin', 'Kohezyon', 'Sürtünme']] + df.values.tolist()
@@ -122,8 +122,8 @@ with st.sidebar:
             
             # Son raporu sakla
             st.session_state.last_report = {
-                "df": df,
-                "risk": risk_answer
+                'df': df,
+                'risk': risk_answer
             }
 
 # Ana Sohbet
@@ -148,7 +148,9 @@ with st.container():
                     if st.session_state.last_report:
                         context = f"Son rapor verileri:\n{st.session_state.last_report['df'].to_string()}\nRisk: {st.session_state.last_report['risk']}\n"
                     
-                    messages = [{"role": "user", "content": f"{context}Geoteknik sorusu: {prompt}"}]
+                    messages = [
+                        {"role": "user", "content": f"{context}Geoteknik sorusu: {prompt}"}
+                    ]
                     try:
                         answer = llm.invoke(messages)
                     except Exception as e:
