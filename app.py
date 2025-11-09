@@ -1,5 +1,5 @@
 # -------------------------------------------------
-# app.py – geotech.ai (ÇALIŞIR! "SELAM" + EK-12 RAPOR)
+# app.py – geotech.ai (ÇALIŞIR! EK-12 RAPOR + AI + HATA YOK!)
 # -------------------------------------------------
 import streamlit as st
 import pandas as pd
@@ -13,8 +13,8 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.styles import getSampleStyleSheet
 
-# LangChain
-from langchain_community.llms import HuggingFaceHub
+# LangChain (YENİ PAKET!)
+from langchain_huggingface import HuggingFaceEndpoint
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
@@ -25,12 +25,13 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 # Token
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
 
-# AI Model
+# AI Model (DÜZELTİLDİ!)
 @st.cache_resource
 def get_llm():
-    return HuggingFaceHub(
+    return HuggingFaceEndpoint(
         repo_id="mistralai/Mistral-7B-Instruct-v0.2",
-        model_kwargs={"temperature": 0.3, "max_new_tokens": 500}
+        temperature=0.3,
+        max_new_tokens=500
     )
 
 @st.cache_resource
@@ -97,7 +98,7 @@ with st.sidebar:
             # AI ile risk analizi (DÜZELTİLDİ!)
             context = df.to_string()
             prompt_template = PromptTemplate.from_template(
-                "Verilere göre likefaksiyon riski nedir? Context: {context}\nCevap:"
+                "Verilere göre likefaksiyon riski nedir? {context}\nCevap:"
             )
             rag_chain = (
                 RunnablePassthrough.assign(context=lambda x: context)
@@ -105,7 +106,7 @@ with st.sidebar:
                 | llm
                 | StrOutputParser()
             )
-            risk = rag_chain.invoke("Risk analizi")
+            risk = rag_chain.invoke({})
             st.write("AI Risk Tahmini:", risk)
             
             # Ek-12 Rapor PDF
