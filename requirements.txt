@@ -3,3 +3,8 @@ pandas
 PyPDF2
 reportlab
 langchain-huggingface
+streamlit
+pandas
+PyPDF2
+reportlab
+langchain-huggingface
