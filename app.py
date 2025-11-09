@@ -13,7 +13,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.styles import getSampleStyleSheet
 
-# LangChain (DOĞRU İMPORTLAR!)
+# LangChain
 from langchain_community.llms import HuggingFaceHub
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
@@ -99,12 +99,7 @@ with st.sidebar:
             prompt_template = PromptTemplate.from_template(
                 "Verilere göre likefaksiyon riski nedir? {context}\nCevap:"
             )
-            rag_chain = (
-                {"context": lambda x: context}
-                | prompt_template
-                | llm
-                | StrOutputParser()
-            )
+            rag_chain = prompt_template | llm | StrOutputParser()
             risk = rag_chain.invoke({"context": context})
             st.write("AI Risk Tahmini:", risk)
             
@@ -147,16 +142,11 @@ with st.container():
 
         with st.chat_message("assistant"):
             with st.spinner("AI düşünüyor..."):
-                # DOĞRU ZİNCİR
-                rag_chain = (
-                    {"context": lambda x: ""}
-                    | PromptTemplate.from_template("Geoteknik sorusu: {question}\nCevap:")
-                    | llm
-                    | StrOutputParser()
-                )
+                # DOĞRU ZİNCİR (question VAR!)
+                rag_chain = PromptTemplate.from_template("Geoteknik sorusu: {question}\nCevap:") | llm | StrOutputParser()
                 answer = rag_chain.invoke({"question": prompt})
                 
-                # "SELAM" ÖZEL CEVAP
+                # Selam özel cevap
                 if "selam" in prompt.lower():
                     answer = "Selam! geotech.ai burada. PDF yükle, rapor oluştur, risk analizi yap! 🚀"
                 
