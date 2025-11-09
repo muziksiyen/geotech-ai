@@ -4,6 +4,7 @@ PyPDF2
 matplotlib
 langchain
 langchain-community
+langchain-core
 faiss-cpu
 sentence-transformers
 huggingface-hub
