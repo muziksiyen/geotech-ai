@@ -1,5 +1,5 @@
 # -------------------------------------------------
-# app.py – geotech.ai (ÇALIŞIR! TÜM SORULARA CEVAP + RİSK + RAPOR)
+# app.py – geotech.ai (ÇALIŞIR! SORULARA CEVAP + OTOMATİK RİSK + RAPOR)
 # -------------------------------------------------
 import streamlit as st
 import pandas as pd
@@ -10,24 +10,26 @@ import io
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.styles import getSampleStyleSheet
+import requests
 
-# LangChain
-from langchain_huggingface import HuggingFaceEndpoint
+# HuggingFace API (Direkt – LangChain yok, hata yok!)
+HF_TOKEN = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
+HF_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
 
-# Token
-os.environ["HUGGINGFACEHUB_API_TOKEN"] = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
-
-# AI Model
-@st.cache_resource
-def get_llm():
-    return HuggingFaceEndpoint(
-        repo_id="mistralai/Mistral-7B-Instruct-v0.2",
-        task="conversational",
-        temperature=0.3,
-        max_new_tokens=500
-    )
-
-llm = get_llm()
+def query_hf(prompt):
+    headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+    payload = {
+        "inputs": prompt,
+        "parameters": {"temperature": 0.3, "max_new_tokens": 500}
+    }
+    try:
+        response = requests.post(HF_URL, headers=headers, json=payload)
+        if response.status_code == 200:
+            return response.json()[0]["generated_text"]
+        else:
+            return "AI hatası: " + str(response.status_code)
+    except Exception as e:
+        return "AI hatası: " + str(e)
 
 # Streamlit
 st.set_page_config(page_title="geotech.ai", page_icon="globe", layout="wide")
@@ -82,14 +84,9 @@ with st.sidebar:
             st.subheader("Çıkarılan Veri")
             st.dataframe(df)
             
-            # OTOMATİK RİSK ANALİZİ (CHAT FORMATI!)
-            messages = [
-                {"role": "user", "content": f"Bu geoteknik veriler için likefaksiyon riski, oturma tahmini, taşıma kapasitesi ve temel önerisi nedir?\n{df.to_string()}"}
-            ]
-            try:
-                risk_answer = llm.invoke(messages)
-            except Exception as e:
-                risk_answer = "AI hatası: " + str(e)
+            # OTOMATİK RİSK ANALİZİ
+            prompt = f"Bu geoteknik veriler için likefaksiyon riski, oturma tahmini, taşıma kapasitesi ve temel önerisi nedir?\n{df.to_string()}\nCevap:"
+            risk_answer = query_hf(prompt)
             
             st.subheader("OTOMATİK RİSK ANALİZİ")
             st.markdown(risk_answer)
@@ -148,13 +145,8 @@ with st.container():
                     if st.session_state.last_report:
                         context = f"Son rapor verileri:\n{st.session_state.last_report['df'].to_string()}\nRisk: {st.session_state.last_report['risk']}\n"
                     
-                    messages = [
-                        {"role": "user", "content": f"{context}Geoteknik sorusu: {prompt}"}
-                    ]
-                    try:
-                        answer = llm.invoke(messages)
-                    except Exception as e:
-                        answer = "AI hatası: " + str(e)
+                    prompt_text = f"{context}Geoteknik sorusu: {prompt}\nCevap:"
+                    answer = query_hf(prompt_text)
                 
                 st.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
