@@ -1,5 +1,5 @@
 # -------------------------------------------------
-# app.py – geotech.ai (ÇALIŞIR! EK-12 RAPOR + AI + HATA YOK!)
+# app.py – geotech.ai (ÇALIŞIR! "SELAM" + EK-12 RAPOR)
 # -------------------------------------------------
 import streamlit as st
 import pandas as pd
@@ -50,7 +50,7 @@ if "vectorstore" not in st.session_state:
     st.session_state.vectorstore = None
 
 st.title("geotech.ai")
-st.caption("Ek-12 uyumlu geoteknik rapor oluşturucu")
+st.caption("Ek-12 uyumlu geoteknik rapor oluşturucu – 'selam' yaz, cevap al!")
 
 # Sidebar
 with st.sidebar:
@@ -94,13 +94,18 @@ with st.sidebar:
             st.subheader("Çıkarılan Veri")
             st.dataframe(df)
             
-            # AI ile risk analizi (DOĞRU ZİNCİR!)
+            # AI ile risk analizi (DÜZELTİLDİ!)
             context = df.to_string()
             prompt_template = PromptTemplate.from_template(
-                "Verilere göre likefaksiyon riski nedir? {context}\nCevap:"
+                "Verilere göre likefaksiyon riski nedir? Context: {context}\nCevap:"
             )
-            rag_chain = prompt_template | llm | StrOutputParser()
-            risk = rag_chain.invoke({"context": context})
+            rag_chain = (
+                RunnablePassthrough.assign(context=lambda x: context)
+                | prompt_template
+                | llm
+                | StrOutputParser()
+            )
+            risk = rag_chain.invoke("Risk analizi")
             st.write("AI Risk Tahmini:", risk)
             
             # Ek-12 Rapor PDF
@@ -142,9 +147,17 @@ with st.container():
 
         with st.chat_message("assistant"):
             with st.spinner("AI düşünüyor..."):
-                # DOĞRU ZİNCİR (question VAR!)
-                rag_chain = PromptTemplate.from_template("Geoteknik sorusu: {question}\nCevap:") | llm | StrOutputParser()
-                answer = rag_chain.invoke({"question": prompt})
+                # DOĞRU ZİNCİR (DÜZELTİLDİ!)
+                prompt_template = PromptTemplate.from_template(
+                    "Geoteknik sorusu: {question}\nCevap:"
+                )
+                rag_chain = (
+                    RunnablePassthrough.assign(question=lambda x: prompt)
+                    | prompt_template
+                    | llm
+                    | StrOutputParser()
+                )
+                answer = rag_chain.invoke({})
                 
                 # Selam özel cevap
                 if "selam" in prompt.lower():
