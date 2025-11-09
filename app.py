@@ -1,5 +1,5 @@
 # -------------------------------------------------
-# app.py – geotech.ai (ÇALIŞIR! "SELAM" + RAPOR + HATA YOK!)
+# app.py – geotech.ai (OTOMATİK RİSK ANALİZİ + EK-12 RAPOR)
 # -------------------------------------------------
 import streamlit as st
 import pandas as pd
@@ -17,12 +17,12 @@ from langchain_huggingface import HuggingFaceEndpoint
 # Token
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
 
-# AI Model (DOĞRU!)
+# AI Model
 @st.cache_resource
 def get_llm():
     return HuggingFaceEndpoint(
         repo_id="mistralai/Mistral-7B-Instruct-v0.2",
-        task="conversational",  # BU SATIR DÜZELTİLDİ!
+        task="conversational",
         temperature=0.3,
         max_new_tokens=500
     )
@@ -34,74 +34,124 @@ st.set_page_config(page_title="geotech.ai", page_icon="globe", layout="wide")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "last_report" not in st.session_state:
+    st.session_state.last_report = None
 
 st.title("geotech.ai")
-st.caption("Ek-12 uyumlu geoteknik rapor oluşturucu")
+st.caption("Veri raporu eklendiğinde OTOMATİK risk analizi + Ek-12 rapor!")
 
 # Sidebar
 with st.sidebar:
-    st.header("Ek-12 Rapor Oluştur")
+    st.header("Veri Raporu Yükle")
     pdf_file = st.file_uploader("PDF Yükle", type="pdf")
     
-    if pdf_file and st.button("Rapor Oluştur"):
-        with st.spinner("Rapor hazırlanıyor..."):
+    if pdf_file:
+        with st.spinner("Rapor işleniyor..."):
+            # PDF'den metin çıkar
             reader = PyPDF2.PdfReader(pdf_file)
             text = "".join([p.extract_text() or "" for p in reader.pages])
             
+            # Veri çıkar
             depths = re.findall(r'Derinlik\D*(\d+\.?\d*)', text, re.I)
             spt_vals = re.findall(r'SPT\D*(\d+)', text, re.I)
             soil_types = re.findall(r'(Kil|Kum|Çakıl|Tın|Organik)', text, re.I)
+            cohesion = re.findall(r'Kohezyon\D*(\d+\.?\d*)', text, re.I)
+            friction = re.findall(r'Sürtünme\D*(\d+\.?\d*)', text, re.I)
             
-            max_len = max(len(depths), len(spt_vals), len(soil_types))
-            def pad(lst, l): return lst + ['-'] * (l - len(lst))
-            depths, spt_vals, soil_types = [pad(lst, max_len) for lst in [depths, spt_vals, soil_types]]
+            # EŞİT UZUNLUK YAP
+            max_len = max(len(depths), len(spt_vals), len(soil_types), len(cohesion), len(friction))
+            def pad_list(lst, length):
+                return lst + ['-'] * (length - len(lst))
             
-            df = pd.DataFrame({'Derinlik': depths, 'SPT': spt_vals, 'Zemin': soil_types})
+            depths = pad_list(depths, max_len)
+            spt_vals = pad_list(spt_vals, max_len)
+            soil_types = pad_list(soil_types, max_len)
+            cohesion = pad_list(cohesion, max_len)
+            friction = pad_list(friction, max_len)
+            
+            df = pd.DataFrame({
+                'Derinlik (m)': depths,
+                'SPT': spt_vals,
+                'Zemin Tipi': soil_types,
+                'Kohezyon (kPa)': cohesion,
+                'Sürtünme Açısı (°)': friction
+            })
+            
+            st.subheader("Çıkarılan Veri")
             st.dataframe(df)
             
-            # AI (CHAT FORMATI)
+            # OTOMATİK RİSK ANALİZİ
+            context = df.to_string()
             messages = [
-                {"role": "user", "content": f"Verilere göre likefaksiyon riski nedir?\n{df.to_string()}"}
+                {"role": "user", "content": f"Verilere göre likefaksiyon riski, oturma, taşıma kapasitesi ve temel önerisi nedir?\n{context}"}
             ]
             try:
-                answer = llm.invoke(messages)
+                risk_answer = llm.invoke(messages)
             except Exception as e:
-                answer = "AI hatası: " + str(e)
-            st.write("AI Risk:", answer)
+                risk_answer = "AI hatası: " + str(e)
             
-            # PDF Rapor
+            st.subheader("OTOMATİK RİSK ANALİZİ")
+            st.markdown(risk_answer)
+            
+            # Ek-12 Rapor PDF
             def create_pdf():
                 buffer = io.BytesIO()
                 doc = SimpleDocTemplate(buffer, pagesize=letter)
                 styles = getSampleStyleSheet()
-                story = [Paragraph("EK-12 RAPOR", styles['Title'])]
-                story.append(Table([['Derinlik', 'SPT', 'Zemin']] + df.values.tolist()))
-                story.append(Paragraph(f"Risk: {answer}", styles['Normal']))
+                story = []
+                
+                story.append(Paragraph("ZEMİN VE TEMEL ETÜDÜ RAPORU (EK-12)", styles['Title']))
+                story.append(Spacer(1, 12))
+                story.append(Paragraph("1. GİRİŞ<br/>Proje: Örnek Proje<br/>Amaç: Temel tasarımı", styles['Normal']))
+                story.append(Spacer(1, 12))
+                
+                data = [['Derinlik', 'SPT', 'Zemin', 'Kohezyon', 'Sürtünme']] + df.values.tolist()
+                table = Table(data)
+                story.append(table)
+                
+                story.append(Spacer(1, 12))
+                story.append(Paragraph(f"2. RİSK ANALİZİ:\n{risk_answer}", styles['Normal']))
+                
                 doc.build(story)
                 buffer.seek(0)
                 return buffer.getvalue()
             
-            st.download_button("PDF İndir", create_pdf(), "rapor.pdf", "application/pdf")
+            pdf_bytes = create_pdf()
+            st.download_button("Ek-12 Rapor PDF İndir", pdf_bytes, "ek12_rapor.pdf", "application/pdf")
+            
+            # Son raporu sakla (sohbet için)
+            st.session_state.last_report = {
+                "df": df,
+                "risk": risk_answer
+            }
 
-# Sohbet
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+# Ana Sohbet
+with st.container():
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
 
-if prompt := st.chat_input("Sor..."):
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
-    
-    with st.chat_message("assistant"):
-        with st.spinner("AI..."):
-            if "selam" in prompt.lower():
-                answer = "Selam! geotech.ai burada! PDF yükle, rapor al! ⚡"
-            else:
-                messages = [{"role": "user", "content": prompt}]
-                try:
-                    answer = llm.invoke(messages)
-                except Exception as e:
-                    answer = "AI hatası: " + str(e)
-            st.markdown(answer)
-            st.session.add_rows({"role": "assistant", "content": answer})
+    if prompt := st.chat_input("Sorunu sor…"):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        with st.chat_message("assistant"):
+            with st.spinner("AI düşünüyor..."):
+                # SELAM
+                if "selam" in prompt.lower():
+                    answer = "Selam! geotech.ai burada. PDF yükle, otomatik rapor al! 🚀"
+                else:
+                    # Son rapor varsa, bağlam ekle
+                    context = ""
+                    if st.session_state.last_report:
+                        context = f"Son rapor verileri:\n{st.session_state.last_report['df'].to_string()}\nRisk: {st.session_state.last_report['risk']}\n"
+                    
+                    messages = [{"role": "user", "content": f"{context}Soru: {prompt}"}]
+                    try:
+                        answer = llm.invoke(messages)
+                    except Exception as e:
+                        answer = "AI hatası: " + str(e)
+                
+                st.markdown(answer)
+                st.session_state.messages.append({"role": "assistant", "content": answer})
