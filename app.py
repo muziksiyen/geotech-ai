@@ -13,14 +13,10 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.styles import getSampleStyleSheet
 
-# LangChain (YENİ PAKET!)
+# LangChain (HUGGINGFACE ENDPOINT)
 from langchain_huggingface import HuggingFaceEndpoint
 from langchain_core.prompts import PromptTemplate
-from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
-from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # Token
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
@@ -34,21 +30,13 @@ def get_llm():
         max_new_tokens=500
     )
 
-@st.cache_resource
-def get_embeddings():
-    return HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-
 llm = get_llm()
-embeddings = get_embeddings()
-splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
 
 # Streamlit
 st.set_page_config(page_title="geotech.ai", page_icon="globe", layout="wide")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "vectorstore" not in st.session_state:
-    st.session_state.vectorstore = None
 
 st.title("geotech.ai")
 st.caption("Ek-12 uyumlu geoteknik rapor oluşturucu – 'selam' yaz, cevap al!")
@@ -97,17 +85,9 @@ with st.sidebar:
             
             # AI ile risk analizi (DÜZELTİLDİ!)
             context = df.to_string()
-            prompt_template = PromptTemplate.from_template(
-                "Verilere göre likefaksiyon riski nedir? {context}\nCevap:"
-            )
-            rag_chain = (
-                RunnablePassthrough.assign(context=lambda x: context)
-                | prompt_template
-                | llm
-                | StrOutputParser()
-            )
-            risk = rag_chain.invoke({})
-            st.write("AI Risk Tahmini:", risk)
+            prompt = f"Verilere göre likefaksiyon riski nedir? {context}\nCevap:"
+            answer = llm.invoke(prompt)
+            st.write("AI Risk Tahmini:", answer)
             
             # Ek-12 Rapor PDF
             def create_pdf():
@@ -126,7 +106,7 @@ with st.sidebar:
                 story.append(table)
                 
                 story.append(Spacer(1, 12))
-                story.append(Paragraph(f"2. RİSK: {risk}", styles['Normal']))
+                story.append(Paragraph(f"2. RİSK: {answer}", styles['Normal']))
                 
                 doc.build(story)
                 buffer.seek(0)
@@ -148,21 +128,13 @@ with st.container():
 
         with st.chat_message("assistant"):
             with st.spinner("AI düşünüyor..."):
-                # DOĞRU ZİNCİR (DÜZELTİLDİ!)
-                prompt_template = PromptTemplate.from_template(
-                    "Geoteknik sorusu: {question}\nCevap:"
-                )
-                rag_chain = (
-                    RunnablePassthrough.assign(question=lambda x: prompt)
-                    | prompt_template
-                    | llm
-                    | StrOutputParser()
-                )
-                answer = rag_chain.invoke({})
-                
-                # Selam özel cevap
+                # SELAM ÖZEL CEVAP
                 if "selam" in prompt.lower():
                     answer = "Selam! geotech.ai burada. PDF yükle, rapor oluştur, risk analizi yap! 🚀"
+                else:
+                    # AI CEVAP
+                    full_prompt = f"Geoteknik sorusu: {prompt}\nCevap:"
+                    answer = llm.invoke(full_prompt)
                 
                 st.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
