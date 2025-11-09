@@ -10,4 +10,5 @@ langchain-core
 langchain-text-splitters
 faiss-cpu
 sentence-transformers
+langchain-huggingface
 huggingface-hub
