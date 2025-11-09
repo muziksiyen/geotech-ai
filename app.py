@@ -1,5 +1,5 @@
 # -------------------------------------------------
-# app.py – geotech.ai (ÇALIŞIR! EK-12 RAPOR + AI + HIZLI)
+# app.py – geotech.ai (ÇALIŞIR! EK-12 RAPOR + AI)
 # -------------------------------------------------
 import streamlit as st
 import pandas as pd
@@ -72,13 +72,24 @@ with st.sidebar:
             cohesion = re.findall(r'Kohezyon\D*(\d+\.?\d*)', text, re.I)
             friction = re.findall(r'Sürtünme\D*(\d+\.?\d*)', text, re.I)
             
-            min_len = min(len(depths), len(spt_vals), len(soil_types))
+            # EŞİT UZUNLUK YAP
+            max_len = max(len(depths), len(spt_vals), len(soil_types), len(cohesion), len(friction))
+            
+            def pad_list(lst, length):
+                return lst + ['-'] * (length - len(lst))
+            
+            depths = pad_list(depths, max_len)
+            spt_vals = pad_list(spt_vals, max_len)
+            soil_types = pad_list(soil_types, max_len)
+            cohesion = pad_list(cohesion, max_len)
+            friction = pad_list(friction, max_len)
+            
             df = pd.DataFrame({
-                'Derinlik (m)': depths[:min_len],
-                'SPT': spt_vals[:min_len],
-                'Zemin Tipi': soil_types[:min_len],
-                'Kohezyon (kPa)': cohesion[:min_len] if cohesion else ['-'] * min_len,
-                'Sürtünme Açısı (°)': friction[:min_len] if friction else ['-'] * min_len
+                'Derinlik (m)': depths,
+                'SPT': spt_vals,
+                'Zemin Tipi': soil_types,
+                'Kohezyon (kPa)': cohesion,
+                'Sürtünme Açısı (°)': friction
             })
             
             st.subheader("Çıkarılan Veri")
@@ -107,7 +118,7 @@ with st.sidebar:
                 story.append(Paragraph("1. GİRİŞ<br/>Proje: Örnek Proje<br/>Amaç: Temel tasarımı", styles['Normal']))
                 story.append(Spacer(1, 12))
                 
-                data = [['Derinlik', 'SPT', 'Zemin']] + df[['Derinlik (m)', 'SPT', 'Zemin Tipi']].values.tolist()
+                data = [['Derinlik', 'SPT', 'Zemin', 'Kohezyon', 'Sürtünme']] + df.values.tolist()
                 table = Table(data)
                 story.append(table)
                 
