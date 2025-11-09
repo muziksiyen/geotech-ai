@@ -1,5 +1,5 @@
 # -------------------------------------------------
-# app.py – geotech.ai (ÇALIŞIR! AI AKTİF!)
+# app.py – geotech.ai (ÇALIŞIR! AI + RAG + HIZLI)
 # -------------------------------------------------
 import streamlit as st
 import pandas as pd
@@ -15,7 +15,7 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter  # DOĞRU YER!
 
 # ---------- Token ----------
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
@@ -58,7 +58,9 @@ with st.sidebar:
             for f in uploaded_files:
                 if f.type == "application/pdf":
                     reader = PyPDF2.PdfReader(f)
-                    text = "".join([p.extract_text() or "" for p in reader.pages])
+                    text = ""
+                    for page in reader.pages:
+                        text += page.extract_text() or ""
                     texts.append(text)
                 else:
                     df = pd.read_csv(f) if f.type == "text/csv" else pd.read_excel(f)
@@ -69,7 +71,7 @@ with st.sidebar:
                 for text in texts:
                     chunks.extend(splitter.split_text(text))
                 st.session_state.vectorstore = FAISS.from_texts(chunks, embeddings)
-                st.success("Veriler AI'ye eklendi!")
+                st.success(f"{len(chunks)} parça AI belleğine eklendi!")
 
 # ---------- Sohbet ----------
 for msg in st.session_state.messages:
@@ -95,7 +97,7 @@ if prompt := st.chat_input("Sorunu sor…"):
                 context = "\n\n".join([d.page_content for d in docs])
                 sources = ["Yüklenen veri"] * len(docs)
 
-            # YENİ ZİNCİR (LLMChain yerine)
+            # RAG ZİNCİRİ
             rag_chain = (
                 {"context": lambda x: context, "question": RunnablePassthrough()}
                 | PromptTemplate.from_template(
@@ -110,6 +112,7 @@ if prompt := st.chat_input("Sorunu sor…"):
             if any(w in prompt.lower() for w in ["oturma", "settlement"]):
                 answer += "\n\n**Oturma formülü:**\n"
                 st.latex(r"s = \frac{q B (1-\nu^2)}{E_s} \cdot I")
+                answer += "\n> *Eₛ ≈ 8 × SPT*"
 
             st.markdown(answer)
             if sources:
