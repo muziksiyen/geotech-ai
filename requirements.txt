@@ -5,6 +5,7 @@ matplotlib
 langchain
 langchain-community
 langchain-core
+langchain-text-splitters
 faiss-cpu
 sentence-transformers
 huggingface-hub
