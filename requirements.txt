@@ -1,6 +1,6 @@
 streamlit
 pandas
 PyPDF2
+matplotlib
 reportlab
-langchain-huggingface
 huggingface-hub
