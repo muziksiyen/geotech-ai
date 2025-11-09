@@ -2,7 +2,8 @@ streamlit
 pandas
 PyPDF2
 matplotlib
+langchain
 langchain-community
-huggingface-hub
 faiss-cpu
 sentence-transformers
+huggingface-hub
