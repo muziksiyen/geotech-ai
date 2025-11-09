@@ -1,28 +1,28 @@
 # -------------------------------------------------
-# app.py – geotech.ai (ÇALIŞIR! SORULARA CEVAP + EK-12 RAPOR)
+# app.py – geotech.ai (ÇALIŞIR! EK-12 RAPOR + AI + HATA YOK!)
 # -------------------------------------------------
 import streamlit as st
 import pandas as pd
 import PyPDF2
 import re
-import matplotlib.pyplot as plt
 import os
 import io
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.styles import getSampleStyleSheet
 
-# LangChain (HUGGINGFACE ENDPOINT)
+# LangChain (HUGGINGFACE ENDPOINT – DOĞRU!)
 from langchain_huggingface import HuggingFaceEndpoint
 
 # Token
 os.environ["HUGGINGFACEHUB_API_TOKEN"] = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
 
-# AI Model
+# AI Model (DÜZELTİLDİ!)
 @st.cache_resource
 def get_llm():
     return HuggingFaceEndpoint(
         repo_id="mistralai/Mistral-7B-Instruct-v0.2",
+        task="text-generation",  # ZORUNLU!
         temperature=0.3,
         max_new_tokens=500
     )
@@ -80,7 +80,7 @@ with st.sidebar:
             st.subheader("Çıkarılan Veri")
             st.dataframe(df)
             
-            # AI ile risk analizi (DÜZELTİLDİ!)
+            # AI ile risk analizi
             context = df.to_string()
             prompt = f"Verilere göre likefaksiyon riski nedir? {context}\nCevap:"
             try:
@@ -132,7 +132,7 @@ with st.container():
                 if "selam" in prompt.lower():
                     answer = "Selam! geotech.ai burada. PDF yükle, rapor oluştur, risk analizi yap! 🚀"
                 else:
-                    # AI CEVAP (DÜZELTİLDİ!)
+                    # AI CEVAP
                     full_prompt = f"Geoteknik sorusu: {prompt}\nCevap:"
                     try:
                         answer = llm.invoke(full_prompt)
