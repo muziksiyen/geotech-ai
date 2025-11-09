@@ -6,7 +6,7 @@ plotly
 easyocr
 opencv-python
 pillow
-reportlab  # PDF rapor için
+reportlab
 langchain
 langchain-community
 langchain-core
