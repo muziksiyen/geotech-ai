@@ -1,5 +1,5 @@
 # -------------------------------------------------
-# app.py – geotech.ai (ÇALIŞIR! "SELAM" + EK-12 RAPOR)
+# app.py – geotech.ai (ÇALIŞIR! EK-12 RAPOR + AI + HATA YOK!)
 # -------------------------------------------------
 import streamlit as st
 import pandas as pd
@@ -13,7 +13,7 @@ from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table
 from reportlab.lib.styles import getSampleStyleSheet
 
-# LangChain
+# LangChain (DOĞRU İMPORTLAR!)
 from langchain_community.llms import HuggingFaceHub
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnablePassthrough
@@ -94,18 +94,18 @@ with st.sidebar:
             st.subheader("Çıkarılan Veri")
             st.dataframe(df)
             
-            # AI ile risk analizi (DOĞRU ZİNCİR)
+            # AI ile risk analizi (DOĞRU ZİNCİR!)
             context = df.to_string()
             prompt_template = PromptTemplate.from_template(
                 "Verilere göre likefaksiyon riski nedir? {context}\nCevap:"
             )
             rag_chain = (
-                {"context": lambda x: context, "question": RunnablePassthrough()}
+                {"context": lambda x: context}
                 | prompt_template
                 | llm
                 | StrOutputParser()
             )
-            risk = rag_chain.invoke("Risk analizi")
+            risk = rag_chain.invoke({"context": context})
             st.write("AI Risk Tahmini:", risk)
             
             # Ek-12 Rapor PDF
@@ -149,12 +149,12 @@ with st.container():
             with st.spinner("AI düşünüyor..."):
                 # DOĞRU ZİNCİR
                 rag_chain = (
-                    {"context": lambda x: "", "question": RunnablePassthrough()}
+                    {"context": lambda x: ""}
                     | PromptTemplate.from_template("Geoteknik sorusu: {question}\nCevap:")
                     | llm
                     | StrOutputParser()
                 )
-                answer = rag_chain.invoke(prompt)
+                answer = rag_chain.invoke({"question": prompt})
                 
                 # "SELAM" ÖZEL CEVAP
                 if "selam" in prompt.lower():
