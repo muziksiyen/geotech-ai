@@ -42,7 +42,7 @@ embeddings = get_embeddings()
 splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
 
 # Streamlit
-st.set_page_config(page_title="geotech.ai", page_icon="globe", layout="wide")
+st.set_page_config(page_title="getech.ai", page_icon="globe", layout="wide")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -74,7 +74,6 @@ with st.sidebar:
             
             # EŞİT UZUNLUK YAP
             max_len = max(len(depths), len(spt_vals), len(soil_types), len(cohesion), len(friction))
-            
             def pad_list(lst, length):
                 return lst + ['-'] * (length - len(lst))
             
@@ -95,11 +94,14 @@ with st.sidebar:
             st.subheader("Çıkarılan Veri")
             st.dataframe(df)
             
-            # AI ile risk analizi
+            # AI ile risk analizi (DOĞRU ZİNCİR)
             context = df.to_string()
+            prompt_template = PromptTemplate.from_template(
+                "Verilere göre likefaksiyon riski nedir? {context}\nCevap:"
+            )
             rag_chain = (
                 {"context": lambda x: context, "question": RunnablePassthrough()}
-                | PromptTemplate.from_template("Verilere göre likefaksiyon riski nedir? {context}\nCevap:")
+                | prompt_template
                 | llm
                 | StrOutputParser()
             )
@@ -145,6 +147,7 @@ with st.container():
 
         with st.chat_message("assistant"):
             with st.spinner("AI düşünüyor..."):
+                # DOĞRU ZİNCİR
                 rag_chain = (
                     {"context": lambda x: "", "question": RunnablePassthrough()}
                     | PromptTemplate.from_template("Geoteknik sorusu: {question}\nCevap:")
